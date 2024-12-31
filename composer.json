@@ -1,0 +1,21 @@
+{
+    "name": "bilbofox/timer-panel",
+    "type": "library",
+    "description": "Tracy debugger panel for measuring runtime",
+    "authors": [
+        {
+            "name": "Michal Kvita",
+            "email": "Mikvt@seznam.cz",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=7.1",
+        "tracy/tracy": "^2.6.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Bilbofox\\TimerPanel\\": "src/"
+        }
+    }
+}

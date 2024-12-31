@@ -1,0 +1,22 @@
+<?php
+declare(strict_types=1);
+
+namespace Bilbofox\TimerPanel;
+
+use Tracy\Helpers;
+
+?>
+
+<h1>Timer panel</h1>
+
+<table class="tracy-sortable tracy-dump-seamless">
+    <tbody>
+        <?php foreach ($timers as $key => $timer): ?>
+            <tr>
+                <th><?= htmlspecialchars($key) ?></th>
+                <td><?= htmlspecialchars(strval($timer->title)) ?></td>
+                <td><?= $formatter($timer->time); ?></td>
+            </tr>
+        <?php endforeach; ?>
+    </tbody>
+</table>

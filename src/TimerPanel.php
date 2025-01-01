@@ -3,9 +3,20 @@
 namespace Bilbofox\TimerPanel;
 
 use Tracy;
+use RuntimeException;
 
 class TimerPanel implements Tracy\IBarPanel
 {
+    const MODE_DEFAULT = 0;
+    const MODE_STACK = 1;
+    const MODE_SUM = 2;
+
+    /**
+     * @var int
+     * @internal
+     */
+    private $counter = 0;
+
     /** @var array */
     private $timers = [];
 
@@ -34,21 +45,111 @@ class TimerPanel implements Tracy\IBarPanel
         return $this;
     }
 
-    public function start(string $key, ?string $title = null)
+    public function getFormatter(): callable
     {
-        $this->timers[$key] = (object)[
-            'start' => microtime(true),
-            'title' => $title,
-        ];
+        return $this->formatter ?? __CLASS__ . '::defaultFormatter';
     }
 
-    public function stop(string $key)
+    /**
+     * Starts timer of given key
+     *
+     * @param string|null $key
+     * @param string|null $title
+     * @return string Key of timer used
+     */
+    public function start(?string $key = null, ?string $title = null, int $mode = self::MODE_DEFAULT): string
     {
-        $this->timers[$key]->stop = microtime(true);
-        $this->timers[$key]->time = $this->timers[$key]->stop - $this->timers[$key]->start;
+        $key = $key ?? 'timer_' . sprintf('%03d', ++$this->counter);
+
+        if (!in_array($mode, [self::MODE_DEFAULT, self::MODE_STACK, self::MODE_SUM], true)) {
+            throw new RuntimeException('Unknown mode, please use one of MODE_* constants');
+        }
+
+        if ($mode === self::MODE_DEFAULT && isset($this->timers[$key])) {
+            throw new RuntimeException(sprintf('Timer "%s" already exists - please use stack or sum mode', $key));
+        }
+
+        $timer = $this->timers[$key] ?? (object)[];
+
+        $trace = debug_backtrace(0, 1);
+        $traceLast = array_shift($trace);
+        $timer->mode = $mode;
+        $timer->start = self::time();
+        $timer->stop = null;
+        $timer->title = $title;
+        $timer->file = $traceLast !== null ? $traceLast['file'] : null;
+        $timer->line = $traceLast !== null ? $traceLast['line'] : null;
+        $timer->counter = isset($timer->counter) ? $timer->counter + 1 : 0;
+
+        if ($mode === self::MODE_STACK) {
+            $this->timers[$key][] = $timer;
+        } else {
+            $this->timers[$key] = $timer;
+        }
+
+        return $key;
     }
 
-    public static function defaultFormatter(float $time): string
+    /**
+     * Stops timer of given key
+     *
+     * @param string|null $key If null (default) - last started timer is stopped
+     * @return string Key of timer used
+     */
+    public function stop(?string $key = null): string
+    {
+        if ($key === null) {
+            // Looking for last started timer...
+            $timersReverse = array_reverse($this->timers, true);
+            foreach ($timersReverse as $timerKey => $timer) {
+                if (!isset($timer->stop)) {
+                    $key = $timerKey;
+                    break;
+                }
+            }
+        }
+
+        if (!isset($this->timers[$key])) {
+            throw new RuntimeException(sprintf('Timer "%s" not found', $key));
+        }
+        $timer = $this->timers[$key];
+
+        if (isset($timer->stop)) {
+            throw new RuntimeException(sprintf('Timer "%s" was already stopped', $key));
+        }
+
+        $timer->stop = self::time();
+        $time = $timer->stop - $timer->start;
+
+        if ($timer->mode === self::MODE_SUM) {
+            $timer->time += $time;
+        } else {
+            $timer->time = $time;
+        }
+
+        return $key;
+    }
+
+    /**
+     * Stops all running timers
+     *
+     * @return void
+     */
+    public function stopAll(): void
+    {
+        foreach ($this->timers as $timerKey => $timer) {
+            if (!isset($this->timers[$timerKey]->stop)) {
+                $this->stop($timerKey);
+            }
+        }
+    }
+
+    protected static function time(): float
+    {
+        return microtime(true);
+    }
+
+    public static function defaultFormatter(float $time, int $precision): string
     {
         $unit = 's';
         if ($time < 1) {
@@ -66,7 +167,7 @@ class TimerPanel implements Tracy\IBarPanel
         if (isset($color)) {
             $output .= '<span style="color: ' . $color . ';">';
         }
-        $output .= round($time, 4) . ' ' . $unit;
+        $output .= round($time, $precision) . ' ' . $unit;
         if (isset($color)) {
             $output .= '</span>';
         }
@@ -79,7 +180,14 @@ class TimerPanel implements Tracy\IBarPanel
 
     public function getTab()
     {
+        $this->stopAll();
+
         return Tracy\Helpers::capture(function (): void {
+            $formatter = $this->getFormatter();
+            $sum = 0;
+            foreach ($this->timers as $timer) {
+                $sum += $timer->time;
+            }
             require __DIR__ . '/templates/TimerPanel.tab.phtml';
         });
     }
@@ -91,7 +199,7 @@ class TimerPanel implements Tracy\IBarPanel
     public function getPanel()
     {
         return Tracy\Helpers::capture(function (): void {
-            $formatter = $this->formatter ?? __CLASS__ . '::defaultFormatter';
+            $formatter = $this->getFormatter();
             $timers = $this->timers;
             require __DIR__ . '/templates/TimerPanel.panel.phtml';
         });

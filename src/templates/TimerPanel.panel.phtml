@@ -11,12 +11,29 @@ use Tracy\Helpers;
 
 <table class="tracy-sortable tracy-dump-seamless">
     <tbody>
+        <?php $sum = 0; ?>
         <?php foreach ($timers as $key => $timer): ?>
             <tr>
                 <th><?= htmlspecialchars($key) ?></th>
                 <td><?= htmlspecialchars(strval($timer->title)) ?></td>
-                <td><?= $formatter($timer->time); ?></td>
+                <td style="text-align: right;"><?= $formatter($timer->time,4); ?></td>
+                <?php
+                    $location = null;
+                    if (isset($timer->file) && isset($timer->line)) {
+                        $location = sprintf('in file %s on line %d', $timer->file, $timer->line);
+                    }
+                ?>
+                <td onclick="event.stopPropagation();"><a style="margin-right: 15px;" class="tracy-dump-location"
+                       <?php if ($location !== null): ?>title="<?= $location ?>"> <?php endif; ?> Location📍
+                    </a>
+                </td>
+                <?php $sum += $timer->time; ?>
             </tr>
         <?php endforeach; ?>
+        <tr style="border-top-style: double;">
+            <th>∑</th>
+            <td></td>
+            <td style="font-weight: bolder; text-align: right;"><?= $formatter($sum,4) ?></td>
+        </tr>
     </tbody>
 </table>

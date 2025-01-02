@@ -15,7 +15,7 @@ class TimerPanel implements Tracy\IBarPanel
      * @var int
      * @internal
      */
-    private $counter = 0;
+    private $counter;
 
     /** @var array */
     private $timers = [];
@@ -65,29 +65,55 @@ class TimerPanel implements Tracy\IBarPanel
             throw new RuntimeException('Unknown mode, please use one of MODE_* constants');
         }
 
+        // Default cannot restart already existing timer
         if ($mode === self::MODE_DEFAULT && isset($this->timers[$key])) {
             throw new RuntimeException(sprintf('Timer "%s" already exists - please use stack or sum mode', $key));
         }
 
-        $timer = $this->timers[$key] ?? (object)[];
+        // Stack adds always new times OR when timer is missing from sum
+        if ($mode === self::MODE_STACK || !isset($this->timers[$key])) {
+            $timer = (object)[];
+        } else {
+            $timer = $this->timers[$key];
+        }
 
         $trace = debug_backtrace(0, 1);
         $traceLast = array_shift($trace);
         $timer->mode = $mode;
-        $timer->start = self::time();
+        $timer->start = Tracy\Debugger::timer();
         $timer->stop = null;
         $timer->title = $title;
         $timer->file = $traceLast !== null ? $traceLast['file'] : null;
         $timer->line = $traceLast !== null ? $traceLast['line'] : null;
-        $timer->counter = isset($timer->counter) ? $timer->counter + 1 : 0;
+        $timer->counter = isset($timer->counter) ? $timer->counter + 1 : 1;
 
         if ($mode === self::MODE_STACK) {
+//            throw new RuntimeException('Stack mode not supported yet');
             $this->timers[$key][] = $timer;
         } else {
             $this->timers[$key] = $timer;
         }
 
         return $key;
+    }
+
+    private function stopTimer(object $timer): void
+    {
+        if (isset($timer->stop)) {
+            throw new RuntimeException(sprintf('Timer "%s" was already stopped', $key));
+        }
+
+        $timer->stop = Tracy\Debugger::timer();
+        $time = $timer->stop - $timer->start;
+
+        if ($timer->mode === self::MODE_SUM) {
+            if (!isset($timer->time)) {
+                $timer->time = 0;
+            }
+            $timer->time += $time;
+        } else {
+            $timer->time = $time;
+        }
     }
 
     /**
@@ -109,22 +135,19 @@ class TimerPanel implements Tracy\IBarPanel
             }
         }
 
-        if (!isset($this->timers[$key])) {
-            throw new RuntimeException(sprintf('Timer "%s" not found', $key));
-        }
-        $timer = $this->timers[$key];
-
-        if (isset($timer->stop)) {
-            throw new RuntimeException(sprintf('Timer "%s" was already stopped', $key));
-        }
-
-        $timer->stop = self::time();
-        $time = $timer->stop - $timer->start;
-
-        if ($timer->mode === self::MODE_SUM) {
-            $timer->time += $time;
+        $timer = $this->timers[$key] ?? null;
+        if (is_array($timer)) {
+            foreach ($timer as $timerStack) {
+                if (!isset($timerStack->stop)) {
+                    $this->stopTimer($timerStack);
+                }
+            }
         } else {
-            $timer->time = $time;
+            if ($timer === null) {
+                throw new RuntimeException(sprintf('Timer "%s" not found', $key));
+            }
+
+            $this->stopTimer($timer);
         }
 
         return $key;
@@ -142,11 +165,6 @@ class TimerPanel implements Tracy\IBarPanel
                 $this->stop($timerKey);
             }
         }
-    }
-
-    protected static function time(): float
-    {
-        return microtime(true);
     }
 
     public static function defaultFormatter(float $time, int $precision): string
@@ -186,7 +204,13 @@ class TimerPanel implements Tracy\IBarPanel
             $formatter = $this->getFormatter();
             $sum = 0;
             foreach ($this->timers as $timer) {
-                $sum += $timer->time;
+                if (is_array($timer)) {
+                    foreach ($timer as $stackTimer) {
+                        $sum += $stackTimer->time;
+                    }
+                } else {
+                    $sum += $timer->time;
+                }
             }
             require __DIR__ . '/templates/TimerPanel.tab.phtml';
         });

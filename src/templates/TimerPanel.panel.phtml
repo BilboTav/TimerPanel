@@ -13,10 +13,13 @@ use Tracy\Helpers;
     <tbody>
         <?php $sum = 0; ?>
         <?php foreach ($timers as $key => $timer): ?>
+
+
             <tr>
                 <th><?= htmlspecialchars($key) ?></th>
+                 <?php if (!is_array($timer)): ?>
                 <td><?= htmlspecialchars(strval($timer->title)) ?></td>
-                <td style="text-align: right;"><?= $formatter($timer->time,4); ?></td>
+                <td style="text-align: right;"><?= $formatter($timer->time,4); if ($timer->mode === TimerPanel::MODE_SUM): echo ' ('.$timer->counter.'x)'; endif; ?></td>
                 <?php
                     $location = null;
                     if (isset($timer->file) && isset($timer->line)) {
@@ -28,7 +31,20 @@ use Tracy\Helpers;
                     </a>
                 </td>
                 <?php $sum += $timer->time; ?>
+
+                <?php else: ?>
+                <td colspan="3">
+                    <table>
+                        <tr>
+                            <th>stack todo...</th>
+                            <td>stack todo...</td>
+                        </tr>
+                    </table>
+                </td>
+                <?php endif; ?>
             </tr>
+
+
         <?php endforeach; ?>
         <tr style="border-top-style: double;">
             <th>∑</th>

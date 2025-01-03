@@ -3,8 +3,6 @@ declare(strict_types=1);
 
 namespace Bilbofox\TimerPanel;
 
-use Tracy\Helpers;
-
 ?>
 
 <span title="Latte Templates">
@@ -28,7 +26,5 @@ use Tracy\Helpers;
         </g>
         <polygon style="fill:#444444;" points="235.3,324.107 206.931,306.485 240.788,251.976 240.788,181.598 274.184,181.598
         274.184,261.503 "/>
-    </svg>
-
-    <span class="tracy-label"><?= $formatter($sum,1); ?></span>
+    </svg><span class="tracy-label"><?= $formatter($sum,1); ?></span>
 </span>

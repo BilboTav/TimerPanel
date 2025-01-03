@@ -1,0 +1,21 @@
+<?php
+declare(strict_types=1);
+
+namespace Bilbofox\TimerPanel;
+
+?>
+
+<td><?= htmlspecialchars(strval($timer->title)) ?></td>
+<td style="text-align: right;"><?= $formatter($timer->time, 4);
+    if ($timer->mode === TimerPanel::MODE_SUM): echo ' (' . $timer->counter . 'x)'; endif; ?></td>
+<?php
+$location = null;
+if (isset($timer->file) && isset($timer->line)) {
+    $location = sprintf('in file %s on line %d', $timer->file, $timer->line);
+}
+?>
+<td onclick="event.stopPropagation();">
+    <a style="margin-right: 10px;" class="tracy-dump-location"
+       <?php if ($location !== null): ?>title="<?= $location ?>"> <?php endif; ?> Location📍
+    </a>
+</td>

@@ -3,51 +3,45 @@ declare(strict_types=1);
 
 namespace Bilbofox\TimerPanel;
 
-use Tracy\Helpers;
-
 ?>
 
 <h1>Timer panel</h1>
-
 <table class="tracy-sortable tracy-dump-seamless">
     <tbody>
         <?php $sum = 0; ?>
-        <?php foreach ($timers as $key => $timer): ?>
-
-
+        <?php foreach ($timers as $key => $mainTimer): ?>
             <tr>
                 <th><?= htmlspecialchars($key) ?></th>
-                 <?php if (!is_array($timer)): ?>
-                <td><?= htmlspecialchars(strval($timer->title)) ?></td>
-                <td style="text-align: right;"><?= $formatter($timer->time,4); if ($timer->mode === TimerPanel::MODE_SUM): echo ' ('.$timer->counter.'x)'; endif; ?></td>
-                <?php
-                    $location = null;
-                    if (isset($timer->file) && isset($timer->line)) {
-                        $location = sprintf('in file %s on line %d', $timer->file, $timer->line);
-                    }
-                ?>
-                <td onclick="event.stopPropagation();"><a style="margin-right: 15px;" class="tracy-dump-location"
-                       <?php if ($location !== null): ?>title="<?= $location ?>"> <?php endif; ?> Location📍
-                    </a>
-                </td>
-                <?php $sum += $timer->time; ?>
-
+                 <?php if (!is_array($mainTimer)): ?>
+                    <?php $timer = $mainTimer; ?>
+                    <?php require 'TimerPanel.row.phtml'; ?>
+                    <?php unset($timer); ?>
+                    <?php $sum += $mainTimer->time; ?>
                 <?php else: ?>
                 <td colspan="3">
-                    <table>
-                        <tr>
-                            <th>stack todo...</th>
-                            <td>stack todo...</td>
+                    <table class="tracy-sortable tracy-dump-seamless">
+                        <?php $stackSum = 0; ?>
+                        <?php foreach ($mainTimer as $key => $stackTimer): ?>
+                            <tr>
+                                <?php $timer = $stackTimer; ?>
+                                <?php require 'TimerPanel.row.phtml'; ?>
+                                <?php unset($timer); ?>
+                                <?php $stackSum += $stackTimer->time; ?>
+                                <?php $sum += $stackTimer->time; ?>
+                            </tr>
+                        <?php endforeach; ?>
+                        <tr style="border-top-style: double; border-top-width: 1pt;">
+                            <th>∑</th>
+                            <td style="font-weight: bolder; text-align: right;"><?= $formatter($stackSum,4) ?></td>
+                            <td></td>
                         </tr>
                     </table>
                 </td>
                 <?php endif; ?>
             </tr>
-
-
         <?php endforeach; ?>
-        <tr style="border-top-style: double;">
-            <th>∑</th>
+        <tr style="border-top-style: double; border-top-width: 2.5pt;">
+            <th style="font-weight: bolder; font-size: 105%;">∑</th>
             <td></td>
             <td style="font-weight: bolder; text-align: right;"><?= $formatter($sum,4) ?></td>
         </tr>

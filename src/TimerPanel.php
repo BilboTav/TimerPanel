@@ -5,6 +5,9 @@ namespace Bilbofox\TimerPanel;
 use Tracy;
 use RuntimeException;
 
+/**
+ * Tracy panel for displaying of measuring time of snippets in code
+ */
 class TimerPanel implements Tracy\IBarPanel
 {
     const MODE_DEFAULT = 0;
@@ -23,6 +26,9 @@ class TimerPanel implements Tracy\IBarPanel
     /** @var callable|null */
     private $formatter;
 
+    // -----------------------------------------------------------------------------
+    // Tracy integration
+
     public static function register(): self
     {
         $panel = self::instance();
@@ -39,6 +45,9 @@ class TimerPanel implements Tracy\IBarPanel
         return Tracy\Debugger::getBar()->getPanel(__CLASS__);
     }
 
+    // -----------------------------------------------------------------------------
+    // get/set
+
     public function setFormatter(callable $formatter): self
     {
         $this->formatter = $formatter;
@@ -49,6 +58,9 @@ class TimerPanel implements Tracy\IBarPanel
     {
         return $this->formatter ?? __CLASS__ . '::defaultFormatter';
     }
+
+    // -----------------------------------------------------------------------------
+    // public interface
 
     /**
      * Starts timer of given key
@@ -80,7 +92,7 @@ class TimerPanel implements Tracy\IBarPanel
         $trace = debug_backtrace(0, 1);
         $traceLast = array_shift($trace);
         $timer->mode = $mode;
-        $timer->start = Tracy\Debugger::timer();
+        $timer->start = self::time();
         $timer->stop = null;
         $timer->title = $title;
         $timer->file = $traceLast !== null ? $traceLast['file'] : null;
@@ -97,23 +109,14 @@ class TimerPanel implements Tracy\IBarPanel
         return $key;
     }
 
-    private function stopTimer(object $timer): void
+    public function startSum(?string $key = null, ?string $title = null): string
     {
-        if (isset($timer->stop)) {
-            throw new RuntimeException(sprintf('Timer "%s" was already stopped', $key));
-        }
+        return $this->start($key, $title, self::MODE_SUM);
+    }
 
-        $timer->stop = Tracy\Debugger::timer();
-        $time = $timer->stop - $timer->start;
-
-        if ($timer->mode === self::MODE_SUM) {
-            if (!isset($timer->time)) {
-                $timer->time = 0;
-            }
-            $timer->time += $time;
-        } else {
-            $timer->time = $time;
-        }
+    public function startStack(?string $key = null, ?string $title = null): string
+    {
+        return $this->start($key, $title, self::MODE_STACK);
     }
 
     /**
@@ -153,6 +156,25 @@ class TimerPanel implements Tracy\IBarPanel
         return $key;
     }
 
+    private function stopTimer(object $timer): void
+    {
+        if (isset($timer->stop)) {
+            throw new RuntimeException(sprintf('Timer "%s" was already stopped', $key));
+        }
+
+        $timer->stop = self::time();
+        $time = $timer->stop - $timer->start;
+
+        if ($timer->mode === self::MODE_SUM) {
+            if (!isset($timer->time)) {
+                $timer->time = 0;
+            }
+            $timer->time += $time;
+        } else {
+            $timer->time = $time;
+        }
+    }
+
     /**
      * Stops all running timers
      *
@@ -165,6 +187,14 @@ class TimerPanel implements Tracy\IBarPanel
                 $this->stop($timerKey);
             }
         }
+    }
+
+    // -----------------------------------------------------------------------------
+    // helpers
+
+    protected static function time(): float
+    {
+        return function_exists('hrtime') ? hrtime(true) / 1e9 : microtime(true);
     }
 
     public static function defaultFormatter(float $time, int $precision): string

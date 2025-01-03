@@ -18,12 +18,14 @@ $timerPanel->start('bar', 'My flowers are beautiful');
 usleep(rand(50,100) * 1000);
 $timerPanel->stop('bar');
 
-$timerPanel->start();
+$t = $timerPanel->start();
 usleep(rand(50,100) * 1000);
-$timerPanel->stop();
 
-$timerPanel->start();
+
+$t = $timerPanel->start('test');
 usleep(rand(50,100) * 1000);
+$timerPanel->stop($t);
+
 $timerPanel->stop();
 
 // Sum
@@ -37,9 +39,8 @@ for ($i = 0; $i <= 3; $i++) {
 // Stack
 
 for ($i = 0; $i <= 3; $i++) {
-    $timerPanel->start('stack', 'Stack of multiple timers #' . $i, TimerPanel::MODE_STACK);
+    $_t = $timerPanel->start('stack', 'Stack of multiple timers', TimerPanel::MODE_STACK);
 
-//    usleep(rand(50,100) * 1000);
-    $timerPanel->stop('stack');
+    usleep(rand(50,100) * 1000);
+    $timerPanel->stop($_t);
 }
-

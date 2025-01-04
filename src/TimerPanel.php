@@ -231,6 +231,10 @@ class TimerPanel implements Tracy\IBarPanel
         $this->stopAll();
 
         return Tracy\Helpers::capture(function (): void {
+            if (!$this->timers) {
+                return;
+            }
+
             $formatter = $this->getFormatter();
             $sum = 0;
             foreach ($this->timers as $timer) {

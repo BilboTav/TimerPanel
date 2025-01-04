@@ -19,7 +19,7 @@ if (!function_exists('startTimerSum')) {
 }
 
 if (!function_exists('startTimerStack')) {
-    function startTimerStack(?string $key = null, ?string $title = null)
+    function startTimerStack(?string $key = null, ?string $title = null): string
     {
         return TimerPanel::instance()->startStack($key, $title);
     }
@@ -29,5 +29,12 @@ if (!function_exists('stopTimer')) {
     function stopTimer(?string $key = null): string
     {
         return TimerPanel::instance()->stop($key);
+    }
+}
+
+if (!function_exists('getLastStartedTimer')) {
+    function getLastStartedTimer(): ?string
+    {
+        return TimerPanel::instance()->getLastStarted();
     }
 }

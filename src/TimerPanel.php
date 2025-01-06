@@ -197,7 +197,12 @@ class TimerPanel implements Tracy\IBarPanel
         return $key;
     }
 
-    private function stopTimer(object $timer): void
+    /**
+     *
+     * @param object $timer
+     * @return void
+     */
+    private function stopTimer(/*object*/ $timer): void
     {
         if (isset($timer->stop)) {
             throw new RuntimeException(sprintf('Timer "%s" was already stopped', $key));

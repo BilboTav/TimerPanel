@@ -5,7 +5,7 @@ use Bilbofox\TimerPanel\TimerPanel;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-Debugger::enable(Debugger::Development);
+Debugger::enable(Debugger::DEVELOPMENT);
 $timerPanel = TimerPanel::register();
 
 // Sum

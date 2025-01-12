@@ -25,6 +25,13 @@ if (!function_exists('startTimerStack')) {
     }
 }
 
+if (!function_exists('getLastStartedTimer')) {
+    function getLastStartedTimer(): ?string
+    {
+        return TimerPanel::instance()->getLastStarted();
+    }
+}
+
 if (!function_exists('stopTimer')) {
     function stopTimer(?string $key = null): string
     {
@@ -32,9 +39,9 @@ if (!function_exists('stopTimer')) {
     }
 }
 
-if (!function_exists('getLastStartedTimer')) {
-    function getLastStartedTimer(): ?string
+if (!function_exists('stopAllTimers')) {
+    function stopAllTimers(): void
     {
-        return TimerPanel::instance()->getLastStarted();
+        TimerPanel::instance()->stopAll();
     }
 }

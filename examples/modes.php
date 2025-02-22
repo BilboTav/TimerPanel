@@ -10,14 +10,21 @@ $timerPanel = TimerPanel::register();
 
 // Sum
 for ($i = 0; $i <= 3; $i++) {
-    $timerPanel->start('sum', 'Sum of multiple timers', TimerPanel::MODE_SUM);
+    // Auto key
+    $timerPanel->startSum();
     usleep(rand(50, 100) * 1000);
-    $timerPanel->stop('sum');
+    $timerPanel->stop();
+
+    // Explicit key
+    $timerPanel->startSum('mysum');
+    usleep(rand(50, 100) * 1000);
+    $timerPanel->stop('mysum');
 }
 
 // Stack
 for ($i = 0; $i <= 3; $i++) {
-    $_t = $timerPanel->start('stack', 'Stack of multiple timers', TimerPanel::MODE_STACK);
+    // Auto key
+    $timerPanel->startStack();
     usleep(rand(50, 100) * 1000);
-    $timerPanel->stop($_t);
+    $timerPanel->stop();
 }

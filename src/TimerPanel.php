@@ -83,13 +83,23 @@ class TimerPanel implements Tracy\IBarPanel
      * @return string Key of timer used
      *
      * @throws InvalidArgumentException
+     * @throws RuntimeException
      */
     public function start(?string $key = null, ?string $title = null, int $mode = self::MODE_DEFAULT): string
     {
-        $key = $key ?? 'timer_' . sprintf('%03d', ++$this->counter);
-
         if (!in_array($mode, [self::MODE_DEFAULT, self::MODE_STACK, self::MODE_SUM], true)) {
             throw new InvalidArgumentException('Unknown mode, please use one of MODE_* constants');
+        }
+
+        if ($key === null) {
+            if ($mode === self::MODE_STACK) {
+                $key = 'stack';
+            } elseif ($mode === self::MODE_SUM) {
+                $key = 'sum';
+            } else {
+                // On default mode - default key is suffixed by counter each time...
+                $key = 'timer_' . sprintf('%03d', ++$this->counter);
+            }
         }
 
         // Stack adds always new times OR when timer is missing from sum
@@ -99,23 +109,23 @@ class TimerPanel implements Tracy\IBarPanel
             $timer = $this->timers[$key];
         }
 
-        $trace = debug_backtrace(0, 2);
-        $traceLast = array_shift($trace);
-        $shortcutsFile = __DIR__ . '/shortcuts.php';
-        // Shortcuts file skip from stack...
-        if ($traceLast !== null && $traceLast['file'] === $shortcutsFile) {
-            $traceLast = array_shift($trace);
-        }
+        $trace = self::getTrace();
 
         $timer->mode = $mode;
         $timer->start = self::time();
         $timer->stop = null;
         $timer->title = $title;
-        $timer->file = $traceLast !== null ? $traceLast['file'] : null;
-        $timer->line = $traceLast !== null ? $traceLast['line'] : null;
+        $timer->file = $trace !== null ? $trace->file : null;
+        $timer->line = $trace !== null ? $trace->line : null;
         $timer->counter = isset($timer->counter) ? $timer->counter + 1 : 1;
 
         if ($mode === self::MODE_STACK) {
+            if (isset($this->timers[$key]) && !is_array($this->timers[$key])) {
+                throw new RuntimeException(
+                    sprintf('Can not use key "%s" for stack timer - already used in another non-stacked timer', $key)
+                );
+            }
+
             $this->timers[$key][] = $timer;
         } else {
             $this->timers[$key] = $timer;
@@ -237,6 +247,18 @@ class TimerPanel implements Tracy\IBarPanel
 
     // -----------------------------------------------------------------------------
     // helpers
+
+    final protected static function getTrace()/*: ?object*/
+    {
+        $traceStack = debug_backtrace();
+        while (($trace = array_shift($traceStack)) !== null) {
+            if ($trace['file'] !== __FILE__ && $trace['file'] !== __DIR__ . '/shortcuts.php') {
+                return (object)$trace;
+            }
+        }
+
+        return null;
+    }
 
     protected static function time(): float
     {

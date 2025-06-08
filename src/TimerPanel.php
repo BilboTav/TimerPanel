@@ -159,7 +159,7 @@ class TimerPanel implements Tracy\IBarPanel
     }
 
     /**
-     * Returns key of last started timer
+     * Returns key of last started timer or null if no timer has been started
      *
      * @return string|null
      */
@@ -176,7 +176,7 @@ class TimerPanel implements Tracy\IBarPanel
     }
 
     /**
-     * Stops timer of given key
+     * Stops timer of given key or last started if null is passed
      *
      * @param string|null $key If null (default) - last started timer is stopped
      * @return string Key of timer used

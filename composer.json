@@ -2,6 +2,7 @@
     "name": "bilbofox/timer-panel",
     "type": "library",
     "description": "Tracy debugger panel for measuring runtime",
+    "license": "Unlicense",
     "authors": [
         {
             "name": "Michal Kvita",
@@ -17,6 +18,8 @@
         "psr-4": {
             "Bilbofox\\TimerPanel\\": "src/"
         },
-        "files": ["src/shortcuts.php"]
+        "files": [
+            "src/shortcuts.php"
+        ]
     }
 }
